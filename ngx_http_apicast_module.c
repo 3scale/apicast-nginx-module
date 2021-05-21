@@ -10,6 +10,8 @@ typedef struct {
   X509                *proxy_client_cert;
   EVP_PKEY            *proxy_client_cert_key;
   X509_STORE          *proxy_client_ca_store;
+  int                 proxy_ssl_verify;
+  int                 proxy_ssl_verify_depth;
 } ngx_http_apiast_ctx_t;
 
 
@@ -142,6 +144,18 @@ int ngx_http_apicast_ffi_set_proxy_ca_cert(
   return NGX_OK;
 }
 
+int ngx_http_apicast_ffi_set_ssl_verify(ngx_http_request_t *r, int verify, int verify_deph){
+  ngx_http_apiast_ctx_t *ctx;
+  ctx = ngx_http_get_module_ctx(r, ngx_http_apicast_module);
+
+  if (ctx == NULL)
+    return NGX_ERROR;
+
+  ctx->proxy_ssl_verify = verify;
+  ctx->proxy_ssl_verify_depth = verify_deph;
+  return NGX_OK;
+}
+
 
 ngx_int_t ngx_http_apicast_set_proxy_cert_if_set(
     ngx_http_request_t *r, ngx_http_apiast_ctx_t *ctx, ngx_connection_t *conn) {
@@ -229,7 +243,30 @@ ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(
   return NGX_OK;
 }
 
-// @TODO vetify, verifydepth and session reuse
+
+ngx_int_t ngx_http_apicast_set_proxy_ssl_verify(
+    ngx_http_request_t *r,
+    ngx_http_apiast_ctx_t *ctx,
+    ngx_connection_t *conn) {
+
+  if ( ctx == NULL ) {
+    return NGX_ERROR;
+  }
+
+  if ( ctx->proxy_ssl_verify > 0 ) {
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Enable proxy ssl upstream verify");
+    SSL_set_verify(conn->ssl->connection, SSL_VERIFY_PEER ,0);
+  }
+
+  if (ctx->proxy_ssl_verify_depth > 0) {
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "Enable proxy ssl upstream verify depth to %d", ctx->proxy_ssl_verify_depth);
+    SSL_set_verify_depth(conn->ssl->connection, ctx->proxy_ssl_verify_depth);
+  }
+
+  return NGX_OK;
+}
+
+
 ngx_int_t ngx_http_upstream_secure_connection_handler(
     ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_connection_t *c) {
 
@@ -255,7 +292,12 @@ ngx_int_t ngx_http_upstream_secure_connection_handler(
   }
 
   if ( ngx_http_apicast_set_proxy_ca_cert_if_set(r, ctx, c) != NGX_OK ) {
-    err = "SetPrivatekey:: cannot set CA certs";
+    err = "SetCaCert:: cannot set CA certs";
+    goto ssl_failed;
+  }
+
+  if ( ngx_http_apicast_set_proxy_ssl_verify(r, ctx, c) != NGX_OK ) {
+    err = "SetSSLVerifyandDepth:: cannot set ssl_verify";
     goto ssl_failed;
   }
 
