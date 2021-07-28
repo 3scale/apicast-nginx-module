@@ -69,7 +69,7 @@ end
 function _M:init()
   local err = nil
 
-  local cert =  read_file("/opt/certs/client_bundle.crt")
+  local cert =  read_file("/opt/certs/client_chain.crt")
   local cert_key =  read_file("/opt/certs/client.key")
   local ca_cert =  read_file("/opt/certs/rootCA.pem")
 

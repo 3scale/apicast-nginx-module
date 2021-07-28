@@ -41,11 +41,11 @@ openssl x509 -req -in subCA.req \
   -CA rootCA.pem -CAkey rootCA.key -CAcreateserial \
   -extfile ca_config.cfg \
   -extensions v3_ca \
-  -out bundleCA.crt
+  -out intermediateCA.crt
 
 echo ">> Verify Intermediate CA"
-openssl verify -CAfile rootCA.pem bundleCA.crt
-openssl x509 -in bundleCA.crt -noout -purpose
+openssl verify -CAfile rootCA.pem intermediateCA.crt
+openssl x509 -in intermediateCA.crt -noout -purpose
 
 
 echo ">> SSL listen certificates"
@@ -61,8 +61,8 @@ echo ">> SSL create client cert"
 openssl genrsa -out client.key 4096
 openssl req -new -subj '/CN=test' -key client.key -out client.req
 openssl x509 -req -in client.req \
-  -CA bundleCA.crt -CAkey subCA.key \
+  -CA intermediateCA.crt -CAkey subCA.key \
   -CAcreateserial -out client.crt \
   -days 500 -sha256
 
-cat client.crt bundleCA.crt rootCA.pem > client_bundle.crt
+cat client.crt intermediateCA.crt rootCA.pem > client_chain.crt
