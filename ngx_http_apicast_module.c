@@ -118,25 +118,26 @@ int ngx_http_apicast_ffi_set_proxy_cert_key(
   ctx->proxy_client_cert_key = cert_key;
 
   if ( number_of_certs > 1 ) {
-    STACK_OF(x509) *chain = sk_X509_new_null();
+    STACK_OF(X509) *chain = sk_X509_new_null();
     if (chain == NULL) {
         err = "sk_X509_new_null() failed";
         goto failed;
     }
 
-    X509 *x509_chain = NULL;
+    X509 *x509_cert = NULL;
     for (int i = 1; i < number_of_certs; i++) {
-      x509_chain = sk_X509_value(cert_chain, i);
-      if (x509 == NULL) {
+      x509_cert = sk_X509_value(cert_chain, i);
+      if (x509_cert == NULL) {
+        sk_X509_pop_free(chain, X509_free);
         err = "sk_X509_value() failed on chain certificate";
         goto failed;
       }
 
-      if (sk_X509_push(chain, x509_chain) == 0) {
-          *err = "sk_X509_push() failed on chain certificate";
-          X509_free(x509_chain);
-          sk_X509_pop_free(chain, X509_free);
-          goto failed;
+      if (sk_X509_push(chain, x509_cert) == 0) {
+        err = "sk_X509_push() failed on chain certificate";
+        X509_free(x509_cert);
+        sk_X509_pop_free(chain, X509_free);
+        goto failed;
       }
     }
     ctx->proxy_client_cert_chain = chain;
@@ -207,20 +208,18 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_if_set(
       goto ssl_failed;
   }
 
-  if (ctx->proxy_client_cert_chain == NULL) {
-    // No chain, that it's expected
-    return NGX_OK;
+  if (ctx->proxy_client_cert_chain) {
+    /* got a client cert chain */
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+      "SetProxyCert: set proxy certificate chain");
+    rc = SSL_set1_chain(conn->ssl->connection, ctx->proxy_client_cert_chain);
+    if (rc == 0 ) {
+      err = "SSL chain cert failed";
+      sk_X509_pop_free(ctx->proxy_client_cert_chain, X509_free);
+      goto ssl_failed;
+    }
   }
-
-  ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
-    "SetProxyCert: set proxy certificate chain");
-  rc = SSL_set1_chain(conn->ssl->connection, ctx->proxy_client_cert_chain);
-  if (rc == 0 ) {
-    err = "SSL chain cert failed";
-    sk_X509_pop_free(ctx->proxy_client_cert_chain, X509_free);
-    goto ssl_failed;
-  }
-
+  
   return NGX_OK;
 
 ssl_failed:
