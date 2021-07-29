@@ -22,6 +22,7 @@ ngx_int_t ngx_http_upstream_secure_connection_handler(
 
 static ngx_int_t ngx_http_apicast_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_apicast_init(ngx_conf_t *cf);
+void ngx_http_apicast_ssl_cleanup_ctx(void *data);
 
 static ngx_command_t  ngx_http_apicast_commands[] = {
 };
@@ -57,13 +58,27 @@ ngx_module_t  ngx_http_apicast_module = {
 };
 
 static ngx_http_apiast_ctx_t * ngx_http_apicast_set_ctx(ngx_http_request_t *r) {
+
   ngx_http_apiast_ctx_t *ctx;
+  ngx_pool_cleanup_t  *cln;
 
   // @TODO maybe we need to clean this memory
   ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_apiast_ctx_t));
   if (ctx == NULL) {
     return NULL;
   }
+
+
+  cln = ngx_pool_cleanup_add(r->pool, 0);
+  if (cln == NULL) {
+      return NULL;
+  }
+
+  /* The proxy_ssl_handler(ngx_ssl_cleanup_ctx) handler is not working for
+   * proxy_client_cert_chain, so we need to
+   * clean manually */
+  cln->handler = ngx_http_apicast_ssl_cleanup_ctx;
+  cln->data = ctx;
 
   ngx_http_set_ctx(r, ctx, ngx_http_apicast_module);
   return ctx;
@@ -81,6 +96,7 @@ int ngx_http_apicast_ffi_set_proxy_cert_key(
   char *err = "";
   STACK_OF(X509) *cert_chain = cdata_chain;
   EVP_PKEY *cert_key = cdata_key;
+
 
   if ( cert_chain == NULL || cert_key == NULL ) {
     err = "No valid cert or key was received";
@@ -367,4 +383,14 @@ static ngx_int_t ngx_http_apicast_init(ngx_conf_t *cf) {
   *h = ngx_http_apicast_handler;
 
   return NGX_OK;
+}
+
+void
+ngx_http_apicast_ssl_cleanup_ctx(void *data)
+{
+  ngx_http_apiast_ctx_t *ctx = data;
+
+  if (ctx->proxy_client_cert_chain) {
+    sk_X509_pop_free(ctx->proxy_client_cert_chain, X509_free);
+  }
 }
