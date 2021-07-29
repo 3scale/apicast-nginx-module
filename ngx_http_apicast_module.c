@@ -13,10 +13,10 @@ typedef struct {
   X509_STORE          *proxy_client_ca_store;
   int                 proxy_ssl_verify;
   int                 proxy_ssl_verify_depth;
-} ngx_http_apiast_ctx_t;
+} ngx_http_apicast_ctx_t;
 
 
-static ngx_http_apiast_ctx_t * ngx_http_apicast_set_ctx(ngx_http_request_t *r);
+static ngx_http_apicast_ctx_t * ngx_http_apicast_set_ctx(ngx_http_request_t *r);
 ngx_int_t ngx_http_upstream_secure_connection_handler(
     ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_connection_t *c);
 
@@ -57,13 +57,13 @@ ngx_module_t  ngx_http_apicast_module = {
   NGX_MODULE_V1_PADDING
 };
 
-static ngx_http_apiast_ctx_t * ngx_http_apicast_set_ctx(ngx_http_request_t *r) {
+static ngx_http_apicast_ctx_t * ngx_http_apicast_set_ctx(ngx_http_request_t *r) {
 
-  ngx_http_apiast_ctx_t *ctx;
+  ngx_http_apicast_ctx_t *ctx;
   ngx_pool_cleanup_t  *cln;
 
   // @TODO maybe we need to clean this memory
-  ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_apiast_ctx_t));
+  ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_apicast_ctx_t));
   if (ctx == NULL) {
     return NULL;
   }
@@ -103,7 +103,7 @@ int ngx_http_apicast_ffi_set_proxy_cert_key(
     goto failed;
   }
 
-  ngx_http_apiast_ctx_t *ctx;
+  ngx_http_apicast_ctx_t *ctx;
   ctx = ngx_http_get_module_ctx(r, ngx_http_apicast_module);
 
   if (ctx == NULL) {
@@ -174,7 +174,7 @@ int ngx_http_apicast_ffi_set_proxy_ca_cert(
   if ( ca_store == NULL)
     return NGX_ERROR;
 
-  ngx_http_apiast_ctx_t *ctx;
+  ngx_http_apicast_ctx_t *ctx;
   ctx = ngx_http_get_module_ctx(r, ngx_http_apicast_module);
 
   if (ctx == NULL)
@@ -190,7 +190,7 @@ int ngx_http_apicast_ffi_set_proxy_ca_cert(
 }
 
 int ngx_http_apicast_ffi_set_ssl_verify(ngx_http_request_t *r, int verify, int verify_deph){
-  ngx_http_apiast_ctx_t *ctx;
+  ngx_http_apicast_ctx_t *ctx;
   ctx = ngx_http_get_module_ctx(r, ngx_http_apicast_module);
 
   if (ctx == NULL)
@@ -203,7 +203,7 @@ int ngx_http_apicast_ffi_set_ssl_verify(ngx_http_request_t *r, int verify, int v
 
 
 ngx_int_t ngx_http_apicast_set_proxy_cert_if_set(
-    ngx_http_request_t *r, ngx_http_apiast_ctx_t *ctx, ngx_connection_t *conn) {
+    ngx_http_request_t *r, ngx_http_apicast_ctx_t *ctx, ngx_connection_t *conn) {
 
   char *err = "";
 
@@ -248,7 +248,7 @@ ssl_failed:
 
 ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(
     ngx_http_request_t *r,
-    ngx_http_apiast_ctx_t *ctx,
+    ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn) {
   if (ctx == NULL) {
     return NGX_ERROR;
@@ -278,7 +278,7 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(
 
 ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(
     ngx_http_request_t *r,
-    ngx_http_apiast_ctx_t *ctx,
+    ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn) {
 
   if ( ctx == NULL ) {
@@ -304,7 +304,7 @@ ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(
 
 ngx_int_t ngx_http_apicast_set_proxy_ssl_verify(
     ngx_http_request_t *r,
-    ngx_http_apiast_ctx_t *ctx,
+    ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn) {
 
   if ( ctx == NULL ) {
@@ -328,7 +328,7 @@ ngx_int_t ngx_http_apicast_set_proxy_ssl_verify(
 ngx_int_t ngx_http_upstream_secure_connection_handler(
     ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_connection_t *c) {
 
-  ngx_http_apiast_ctx_t *ctx;
+  ngx_http_apicast_ctx_t *ctx;
   char *err = "";
   ctx = ngx_http_get_module_ctx(r, ngx_http_apicast_module);
 
@@ -388,7 +388,7 @@ static ngx_int_t ngx_http_apicast_init(ngx_conf_t *cf) {
 void
 ngx_http_apicast_ssl_cleanup_ctx(void *data)
 {
-  ngx_http_apiast_ctx_t *ctx = data;
+  ngx_http_apicast_ctx_t *ctx = data;
 
   if (ctx->proxy_client_cert_chain) {
     sk_X509_pop_free(ctx->proxy_client_cert_chain, X509_free);
