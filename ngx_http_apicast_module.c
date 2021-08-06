@@ -324,6 +324,20 @@ ngx_int_t ngx_http_apicast_set_proxy_ssl_verify(
   return NGX_OK;
 }
 
+ngx_int_t ngx_http_upstream_should_verified(ngx_http_request_t *r) {
+
+  ngx_http_apicast_ctx_t *ctx;
+
+  ctx = ngx_http_get_module_ctx(r, ngx_http_apicast_module);
+  if (ctx == NULL ) {
+    return NGX_ERROR;
+  }
+
+  if (ctx->proxy_ssl_verify > 0) {
+    return NGX_OK;
+  }
+  return NGX_ERROR;
+}
 
 ngx_int_t ngx_http_upstream_secure_connection_handler(
     ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_connection_t *c) {
