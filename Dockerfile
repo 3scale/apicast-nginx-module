@@ -8,10 +8,14 @@ RUN yum upgrade -y \
         gcc make git which curl expat-devel \
         perl-Test-Nginx openssl-devel m4 \
         perl-local-lib perl-App-cpanminus \
-        libyaml wget vim valgrind pcre-devel
-
+        libyaml wget vim valgrind pcre-devel patch
 
 WORKDIR /opt/
+
 COPY Makefile /opt/
-WORKDIR /opt/
+COPY patches/ /opt/patches/
 RUN make download
+COPY ngx_http_apicast_module.* /opt/
+COPY config /opt/
+RUN make patch
+RUN make compile
