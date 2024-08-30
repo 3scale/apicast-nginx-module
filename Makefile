@@ -1,5 +1,5 @@
 BUILD=build
-OPENRESTY_VERSION=1.19.3.1
+OPENRESTY_VERSION=1.21.4.3
 
 createFolder:
 	mkdir $(BUILD)
@@ -12,7 +12,7 @@ download: clean createFolder
 	tar xfvz $(BUILD)/openresty.tar.gz -C $(BUILD)
 
 patch:
-	patch -p0 < patches/nginx_upstream.diff
+	patch -p0 < patches/nginx_upstream-$(OPENRESTY_VERSION).diff
 
 compile:
 	cd build/openresty-$(OPENRESTY_VERSION) \
