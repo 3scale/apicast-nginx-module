@@ -446,13 +446,13 @@ ngx_http_apicast_ssl_cleanup_ctx(void *data)
         return;
     }
 
-    // Clean up cert chain and key
+    /* Clean up cert chain and key */
     if (ctx->proxy_client_cert_chain != NULL) {
         sk_X509_pop_free(ctx->proxy_client_cert_chain, X509_free);
         EVP_PKEY_free(ctx->proxy_client_cert_key);
     }
 
-    // Cleanup trust store
+    /* Cleanup trust store */
     if (ctx->proxy_client_ca_store != NULL) {
         X509_STORE_free(ctx->proxy_client_ca_store);
     }
