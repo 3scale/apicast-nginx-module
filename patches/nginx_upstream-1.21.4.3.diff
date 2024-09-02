@@ -1,0 +1,27 @@
+--- build/openresty-1.21.4.3/bundle/nginx-1.21.4/src/http/ngx_http_upstream.c	2023-11-04 13:17:05.000000000 +1000
++++ ngx_http_upstream.c	2024-08-30 11:57:16.284474231 +1000
+@@ -8,6 +8,7 @@
+ #include <ngx_config.h>
+ #include <ngx_core.h>
+ #include <ngx_http.h>
++#include <ngx_http_apicast_module.h>
+ 
+ 
+ #if (NGX_HTTP_CACHE)
+@@ -1735,6 +1736,7 @@
+             return;
+         }
+     }
++    ngx_http_upstream_secure_connection_handler(r, u, c);
+ 
+     r->connection->log->action = "SSL handshaking to upstream";
+ 
+@@ -1785,7 +1787,7 @@
+ 
+     if (c->ssl->handshaked) {
+ 
+-        if (u->conf->ssl_verify) {
++        if (u->conf->ssl_verify || ngx_http_upstream_should_verified(r) == NGX_OK) {
+             rc = SSL_get_verify_result(c->ssl->connection);
+ 
+             if (rc != X509_V_OK) {

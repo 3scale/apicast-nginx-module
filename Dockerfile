@@ -1,21 +1,38 @@
-FROM centos:8
+FROM quay.io/centos/centos:stream8
+
+ARG OPENRESTY_YUM_REPO="https://openresty.org/package/centos/openresty.repo"
+
+COPY . /opt/
+
+RUN sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Stream-* \
+    && sed -i 's/mirrorlist/#mirrorlist/g'  /etc/yum.repos.d/CentOS-*
 
 RUN yum upgrade -y \
     && dnf install -y 'dnf-command(config-manager)' \
-    && yum config-manager --add-repo http://packages.dev.3sca.net/dev_packages_3sca_net.repo \
     && dnf --enablerepo=powertools install -y perl-List-MoreUtils perl-Test-LongString libyaml-devel\
     && yum install -y \
-        gcc make git which curl expat-devel \
-        perl-Test-Nginx openssl-devel m4 \
+        gcc gcc-c++ make cmake git which curl expat-devel \
+        openssl-devel m4 \
         perl-local-lib perl-App-cpanminus \
-        libyaml wget vim valgrind pcre-devel patch
+        libyaml wget vim valgrind valgrind-devel pcre-devel patch \
+    && git clone https://github.com/ccache/ccache \
+    && cd ccache \
+    && mkdir build \
+    && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=Release .. \
+    && make \
+    && make install \
+    && yum config-manager --add-repo ${OPENRESTY_YUM_REPO}\
+    && dnf install -y \
+        openresty-zlib-devel \
+        openresty-openssl111-debug-devel \
+        openresty-pcre2-devel \
+        openresty-zlib \
+        openresty-openssl111-debug \
+        openresty-pcre2 \
+    && yum clean all
+
+# Add additional binaries into PATH for convenience
+ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/usr/local/openresty/bin
 
 WORKDIR /opt/
-
-COPY Makefile /opt/
-COPY patches/ /opt/patches/
-RUN make download
-COPY ngx_http_apicast_module.* /opt/
-COPY config /opt/
-RUN make patch
-RUN make compile
