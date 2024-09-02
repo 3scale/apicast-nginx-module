@@ -1,8 +1,6 @@
 FROM quay.io/centos/centos:stream8
 
 ARG OPENRESTY_YUM_REPO="https://openresty.org/package/centos/openresty.repo"
-ARG OPENRESTY_VERSION=1.19.3.1
-ARG OPENRESTY_LUAROCKS_VERSION="3.11.0"
 
 COPY . /opt/
 
