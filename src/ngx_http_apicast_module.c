@@ -223,7 +223,7 @@ ngx_http_apicast_ffi_set_ssl_verify(ngx_http_request_t *r, int verify,
 
 
 ngx_int_t ngx_http_apicast_set_proxy_cert_if_set(
-    ngx_http_request_t *r, ngx_http_apicast_ctx_t *ctx, ngx_connection_t *conn)
+    ngx_http_apicast_ctx_t *ctx, ngx_connection_t *conn)
 {
     char *err = "";
     int   rc;
@@ -234,7 +234,7 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_if_set(
     }
 
     if (ctx->proxy_client_cert == NULL) {
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+        ngx_log_error(NGX_LOG_DEBUG, conn->log, 0,
                       "SetProxyCert: no certificate was set");
         return NGX_OK;
     }
@@ -247,7 +247,7 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_if_set(
 
     if (ctx->proxy_client_cert_chain) {
         /* got a client cert chain */
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+        ngx_log_error(NGX_LOG_DEBUG, conn->log, 0,
                       "SetProxyCert: set proxy certificate chain");
         rc = SSL_set1_chain(conn->ssl->connection,
                             ctx->proxy_client_cert_chain);
@@ -263,13 +263,13 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_if_set(
 ssl_failed:
 
     ERR_print_errors_fp(stderr);
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "SetProxyCert: %s", err);
+    ngx_log_error(NGX_LOG_ERR, conn->log, 0, "SetProxyCert: %s", err);
     ERR_clear_error();
     return NGX_ERROR;
 }
 
 
-ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(ngx_http_request_t *r,
+ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(
     ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn)
 {
@@ -280,7 +280,7 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(ngx_http_request_t *r,
     }
 
     if (ctx->proxy_client_cert_key == NULL) {
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+        ngx_log_error(NGX_LOG_DEBUG, conn->log, 0,
                       "SetProxyCertKey: certificate key was not found");
         return NGX_OK;
     }
@@ -289,7 +289,7 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(ngx_http_request_t *r,
 
     if (rc == 0) {
         EVP_PKEY_free(ctx->proxy_client_cert_key);
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+        ngx_log_error(NGX_LOG_ERR, conn->log, 0,
                       "SetProxyCertKey: cannot use certificate key, rc:'%d'",
                       rc);
         ERR_print_errors_fp(stderr);
@@ -301,7 +301,7 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(ngx_http_request_t *r,
 }
 
 
-ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(ngx_http_request_t *r,
+ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(
     ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn)
 {
@@ -318,7 +318,7 @@ ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(ngx_http_request_t *r,
     rc = SSL_set1_verify_cert_store(conn->ssl->connection,
                                     ctx->proxy_client_ca_store);
     if (rc == 0) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+        ngx_log_error(NGX_LOG_ERR, conn->log, 0,
                       "Cannot set the ca cert to the store, rc:%d", rc);
         return NGX_ERROR;
     }
@@ -327,8 +327,7 @@ ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(ngx_http_request_t *r,
 }
 
 
-ngx_int_t ngx_http_apicast_set_proxy_ssl_verify(ngx_http_request_t *r,
-    ngx_http_apicast_ctx_t *ctx,
+ngx_int_t ngx_http_apicast_set_proxy_ssl_verify(ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn)
 {
     if (ctx == NULL) {
@@ -336,13 +335,13 @@ ngx_int_t ngx_http_apicast_set_proxy_ssl_verify(ngx_http_request_t *r,
     }
 
     if (ctx->proxy_ssl_verify > 0) {
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+        ngx_log_error(NGX_LOG_DEBUG, conn->log, 0,
                       "Enable proxy ssl upstream verify");
         SSL_set_verify(conn->ssl->connection, SSL_VERIFY_PEER ,0);
     }
 
     if (ctx->proxy_ssl_verify_depth > 0) {
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+        ngx_log_error(NGX_LOG_DEBUG, conn->log, 0,
                       "Enable proxy ssl upstream verify depth to %d",
                       ctx->proxy_ssl_verify_depth);
         SSL_set_verify_depth(conn->ssl->connection,
@@ -387,22 +386,22 @@ ngx_http_upstream_secure_connection_handler(
         goto ssl_failed;
     }
 
-    if (ngx_http_apicast_set_proxy_cert_if_set(r, ctx, c) != NGX_OK) {
+    if (ngx_http_apicast_set_proxy_cert_if_set(ctx, c) != NGX_OK) {
         err = "SetCert:: cannot set proxy_cert";
         goto ssl_failed;
     }
 
-    if (ngx_http_apicast_set_proxy_cert_key_if_set(r, ctx, c) != NGX_OK) {
+    if (ngx_http_apicast_set_proxy_cert_key_if_set(ctx, c) != NGX_OK) {
         err = "SetPrivatekey:: cannot set proxy key";
         goto ssl_failed;
     }
 
-    if (ngx_http_apicast_set_proxy_ca_cert_if_set(r, ctx, c) != NGX_OK) {
+    if (ngx_http_apicast_set_proxy_ca_cert_if_set(ctx, c) != NGX_OK) {
         err = "SetCaCert:: cannot set CA certs";
         goto ssl_failed;
     }
 
-    if (ngx_http_apicast_set_proxy_ssl_verify(r, ctx, c) != NGX_OK) {
+    if (ngx_http_apicast_set_proxy_ssl_verify(ctx, c) != NGX_OK) {
         err = "SetSSLVerifyandDepth:: cannot set ssl_verify";
         goto ssl_failed;
     }
