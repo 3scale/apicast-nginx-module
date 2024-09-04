@@ -156,6 +156,11 @@ int ngx_http_apicast_ffi_set_proxy_cert_key(
                 goto failed;
             }
 
+            if (X509_up_ref(x509_cert) == 0) {
+                err = "X509_up_ref() failed";
+                goto failed;
+            }
+
             if (sk_X509_push(chain, x509_cert) == 0) {
                 err = "sk_X509_push() failed on chain certificate";
                 X509_free(x509_cert);
