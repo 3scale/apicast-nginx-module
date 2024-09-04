@@ -12,7 +12,7 @@
              return;
          }
      }
-+    ngx_http_upstream_secure_connection_handler(r, u, c);
++    ngx_http_upstream_secure_connection_handler(r, c);
  
      r->connection->log->action = "SSL handshaking to upstream";
  

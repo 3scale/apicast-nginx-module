@@ -20,7 +20,7 @@ static ngx_http_apicast_ctx_t *
 ngx_http_apicast_set_ctx(ngx_http_request_t *r);
 
 ngx_int_t ngx_http_upstream_secure_connection_handler(
-    ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_connection_t *c);
+    ngx_http_request_t *r, ngx_connection_t *c);
 
 static ngx_int_t ngx_http_apicast_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_apicast_init(ngx_conf_t *cf);
@@ -371,7 +371,7 @@ ngx_http_upstream_should_verified(ngx_http_request_t *r)
 
 ngx_int_t
 ngx_http_upstream_secure_connection_handler(
-    ngx_http_request_t *r, ngx_http_upstream_t *u, ngx_connection_t *c)
+    ngx_http_request_t *r, ngx_connection_t *c)
 {
 
     ngx_http_apicast_ctx_t *ctx;
