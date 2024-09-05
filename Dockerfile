@@ -32,6 +32,10 @@ RUN yum upgrade -y \
         openresty-pcre2 \
     && yum clean all
 
+# perl-Test-Nginx
+RUN cpanm --notest IPC::Run && \
+    cpanm https://cpan.metacpan.org/authors/id/A/AG/AGENT/Test-Nginx-0.29.tar.gz
+
 # Add additional binaries into PATH for convenience
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/usr/local/openresty/bin
 
