@@ -7,7 +7,7 @@ function echo {
 }
 
 export CERT_FOLDER="$(pwd)/certs"
-export DOMAIN="subca.acalustra.com"
+export DOMAIN="example.com"
 
 mkdir -p $CERT_FOLDER
 rm -rf $CERT_FOLDER/*

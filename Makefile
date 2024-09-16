@@ -1,6 +1,15 @@
 BUILD=build
 OPENRESTY_VERSION=1.21.4.3
 
+PREFIX ?=          /usr/local
+LUA_INCLUDE_DIR ?= $(PREFIX)/include
+LUA_LIB_DIR ?=     $(PREFIX)/openresty/lualib
+INSTALL ?= install
+
+SHELL := /bin/bash
+
+DOCKER ?= $(shell which docker 2> /dev/null || echo "docker")
+
 createFolder:
 	mkdir $(BUILD)
 
@@ -46,4 +55,13 @@ compile:
 openssl:
 	 cd /tmp && \
 	 git clone https://github.com/fffonion/lua-resty-openssl.git --depth 1 && \
-	 cp -r lua-resty-openssl/lib/resty/openssl /usr/local/openresty/lualib/resty/
+	 cp -r lua-resty-openssl/lib/resty/openssl $(LUA_LIB_DIR)/resty/
+
+install:
+	$(INSTALL) -d $(DESTDIR)$(LUA_LIB_DIR)/resty/
+	$(INSTALL) lib/resty/*.lua $(DESTDIR)$(LUA_LIB_DIR)/resty/
+
+development:
+	- $(DOCKER) build -t 3scale/apicast-nginx-module .
+	$(DOCKER) run --rm -v .:/opt -it 3scale/apicast-nginx-module bash
+
