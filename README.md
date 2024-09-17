@@ -46,4 +46,13 @@ valgrind --tool=memcheck --leak-check=full --keep-debuginfo=yes --show-possibly-
 ```
 
 # Testing:
-All made on APICast project
+Run test
+```
+prove
+```
+
+Run test with valgrind
+
+```
+TEST_NGINX_USE_VALGRIND=1 prove
+```
