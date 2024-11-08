@@ -107,7 +107,7 @@ client sent no required SSL certificate while reading client request headers
           mtls:set_certs(chain, private_key)
         }
 
-        proxy_ssl_trusted_certificate /opt/certs/rootCA.pem;
+        proxy_ssl_trusted_certificate ../..//fixtures/rootCA.pem;
         proxy_ssl_verify on;
         proxy_ssl_name example.com;
         proxy_ssl_session_reuse off;
