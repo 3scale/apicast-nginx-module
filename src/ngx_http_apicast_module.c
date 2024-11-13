@@ -90,7 +90,8 @@ ngx_http_apicast_set_ctx(ngx_http_request_t *r)
 }
 
 
-static ngx_int_t ngx_http_apicast_handler(ngx_http_request_t *r)
+static ngx_int_t
+ngx_http_apicast_handler(ngx_http_request_t *r)
 {
     /* @TODO validate here that the ctx is deleted and it's not leaking */
     ngx_http_apicast_set_ctx(r);
@@ -98,7 +99,93 @@ static ngx_int_t ngx_http_apicast_handler(ngx_http_request_t *r)
 }
 
 
-int ngx_http_apicast_ffi_set_proxy_cert_key(
+int
+ngx_http_apicast_ffi_get_full_client_certificate_chain(ngx_http_request_t *r,
+    u_char **value, size_t *value_len)
+{
+    ngx_connection_t    *c;
+    X509                *cert;
+    STACK_OF(X509)      *chain;
+    BIO                 *bio;
+    int                 i, numcerts;
+    size_t              len;
+    ngx_str_t           s;
+
+    if (r->connection == NULL || r->connection->ssl == NULL) {
+        return NGX_ERROR;
+    }
+
+    c = r->connection;
+    if (c == NULL) {
+        return NGX_ERROR;
+    }
+
+    s.len = 0;
+
+    // First get peer's certificate
+    // See: https://docs.openssl.org/1.1.1/man3/SSL_get_peer_cert_chain
+    cert = SSL_get_peer_certificate(c->ssl->connection);
+    if (cert == NULL) {
+        /* client did not present a certificate or server did not request it */
+        return NGX_DECLINED;
+    }
+
+    bio = BIO_new(BIO_s_mem());
+    if(!bio) {
+        ngx_ssl_error(NGX_LOG_ERR, c->log, 0, "BIO_new() failed");
+        X509_free(cert);
+        return NGX_ERROR;
+    }
+
+    if (PEM_write_bio_X509(bio, cert) == 0) {
+        ngx_ssl_error(NGX_LOG_ERR, c->log, 0, "PEM_write_bio_X509() failed");
+        X509_free(cert);
+        goto failed;
+    }
+
+    X509_free(cert);
+
+    chain = SSL_get_peer_cert_chain(c->ssl->connection);
+    if(!chain) {
+        ngx_ssl_error(NGX_LOG_ERR, c->log, 0, "SSL_get_peer_cert_chain() failed");
+        goto failed;
+    }
+
+    numcerts = sk_X509_num(chain);
+
+    for(i = 0; i < numcerts; i++) {
+        cert = sk_X509_value(chain, i);
+
+        if (PEM_write_bio_X509(bio, cert) == 0) {
+            ngx_ssl_error(NGX_LOG_ERR, c->log, 0, "PEM_write_bio_X509() failed");
+            goto failed;
+        }
+    }
+
+    len = BIO_pending(bio);
+    s.len = len;
+    s.data = ngx_pnalloc(r->pool, len);
+    if (s.data == NULL) {
+        goto failed;
+    }
+
+    BIO_read(bio, s.data, len);
+    *value = s.data;
+    *value_len = s.len;
+
+    BIO_free(bio);
+    return NGX_OK;
+
+failed:
+
+    BIO_free(bio);
+
+    return NGX_ERROR;
+}
+
+
+int
+ngx_http_apicast_ffi_set_proxy_cert_key(
     ngx_http_request_t *r, void *cdata_chain, void *cdata_key)
 {
     char *err       = "";
@@ -227,7 +314,8 @@ ngx_http_apicast_ffi_set_ssl_verify(ngx_http_request_t *r, int verify,
 }
 
 
-ngx_int_t ngx_http_apicast_set_proxy_cert_if_set(
+ngx_int_t
+ngx_http_apicast_set_proxy_cert_if_set(
     ngx_http_apicast_ctx_t *ctx, ngx_connection_t *conn)
 {
     char *err = "";
@@ -274,7 +362,8 @@ ssl_failed:
 }
 
 
-ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(
+ngx_int_t
+ngx_http_apicast_set_proxy_cert_key_if_set(
     ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn)
 {
@@ -306,7 +395,8 @@ ngx_int_t ngx_http_apicast_set_proxy_cert_key_if_set(
 }
 
 
-ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(
+ngx_int_t
+ngx_http_apicast_set_proxy_ca_cert_if_set(
     ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn)
 {
@@ -332,7 +422,8 @@ ngx_int_t ngx_http_apicast_set_proxy_ca_cert_if_set(
 }
 
 
-ngx_int_t ngx_http_apicast_set_proxy_ssl_verify(ngx_http_apicast_ctx_t *ctx,
+ngx_int_t
+ngx_http_apicast_set_proxy_ssl_verify(ngx_http_apicast_ctx_t *ctx,
     ngx_connection_t *conn)
 {
     if (ctx == NULL) {
