@@ -104,10 +104,10 @@ client sent no required SSL certificate while reading client request headers
 
           local private_key = assert(ssl.parse_pem_priv_key(key))
 
-          mtls:set_certs(chain, private_key)
+          mtls.set_upstream_cert_and_key(chain, private_key)
         }
 
-        proxy_ssl_trusted_certificate /opt/certs/rootCA.pem;
+        proxy_ssl_trusted_certificate ../..//fixtures/rootCA.pem;
         proxy_ssl_verify on;
         proxy_ssl_name example.com;
         proxy_ssl_session_reuse off;
@@ -172,7 +172,7 @@ verify:1, error:0, depth:0, subject:"/CN=test", issuer:"/CN=sub.ca"
 
           local private_key = assert(ssl.parse_pem_priv_key(key))
 
-          mtls:set_certs(chain, private_key)
+          mtls.set_upstream_cert_and_key(chain, private_key)
         }
 
         proxy_ssl_trusted_certificate ../../fixtures/rootCA.pem;
@@ -238,7 +238,7 @@ verify:1, error:0, depth:0, subject:"/CN=test", issuer:"/CN=sub.ca"
 
           local private_key = assert(ssl.parse_pem_priv_key(key))
 
-          mtls:set_certs(chain, private_key)
+          mtls.set_upstream_cert_and_key(chain, private_key)
         }
 
         proxy_ssl_trusted_certificate ../../fixtures/subCA.pem;
@@ -301,8 +301,8 @@ upstream SSL certificate verify error: (21:unable to verify the first certificat
 
           local private_key = assert(ssl.parse_pem_priv_key(key))
 
-          mtls:set_certs(chain, private_key)
-          mtls:set_ssl_verify(true)
+          mtls.set_upstream_cert_and_key(chain, private_key)
+          mtls.set_upstream_ssl_verify(true)
         }
 
         proxy_ssl_trusted_certificate ../../fixtures/subCA.pem;
@@ -364,8 +364,8 @@ SSL_do_handshake() failed
 
           local private_key = assert(ssl.parse_pem_priv_key(key))
 
-          mtls:set_certs(chain, private_key)
-          mtls:set_ssl_verify(true)
+          mtls.set_upstream_cert_and_key(chain, private_key)
+          mtls.set_upstream_ssl_verify(true)
         }
 
         proxy_ssl_trusted_certificate ../../fixtures/subCA.pem;
@@ -427,8 +427,8 @@ SSL_do_handshake() failed
 
           local private_key = assert(ssl.parse_pem_priv_key(key))
 
-          mtls:set_certs(chain, private_key)
-          mtls:set_ssl_verify(false)
+          mtls.set_upstream_cert_and_key(chain, private_key)
+          mtls.set_upstream_ssl_verify(false)
         }
 
         proxy_ssl_trusted_certificate ../../fixtures/subCA.pem;
@@ -490,7 +490,7 @@ yay, API backend
 
           local private_key = assert(ssl.parse_pem_priv_key(key))
 
-          mtls:set_certs(chain, private_key)
+          mtls.set_upstream_cert_and_key(chain, private_key)
 
           f = assert(io.open("t/fixtures/rootCA.pem"))
           local ca_cert = f:read("*a")
@@ -501,8 +501,8 @@ yay, API backend
 
           local store = ssl_store.new()
           store:add(x509.new(ca_cert))
-          mtls:set_ca(store)
-          mtls:set_ssl_verify(true)
+          mtls.set_upstream_ca_cert(store.ctx)
+          mtls.set_upstream_ssl_verify(true)
         }
 
         proxy_ssl_session_reuse off;
@@ -571,8 +571,8 @@ X509_check_host(): match
 
           local private_key = assert(ssl.parse_pem_priv_key(key))
 
-          mtls:set_certs(chain, private_key)
-          mtls:set_ssl_verify(true)
+          mtls.set_upstream_cert_and_key(chain, private_key)
+          mtls.set_upstream_ssl_verify(true)
 
           f = assert(io.open("t/fixtures/subCA.pem"))
           local ca_cert = f:read("*a")
@@ -583,7 +583,7 @@ X509_check_host(): match
 
           local store = ssl_store.new()
           store:add(x509.new(ca_cert))
-          mtls:set_ca(store)
+          mtls.set_upstream_ca_cert(store.ctx)
         }
 
         proxy_ssl_name example.com;
