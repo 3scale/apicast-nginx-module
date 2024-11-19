@@ -7,6 +7,17 @@ my $pwd = cwd();
 
 $ENV{TEST_NGINX_HTML_DIR} ||= html_dir();
 
+sub read_file {
+    my $infile = shift;
+    open my $in, $infile
+        or die "cannot open $infile for reading: $!";
+    my $cert = do { local $/; <$in> };
+    close $in;
+    $cert;
+}
+
+our $ClientCertChain = read_file('t/fixtures/client_chain.crt');
+
 log_level 'debug';
 
 # no_long_string();
@@ -90,7 +101,7 @@ client sent no required SSL certificate while reading client request headers
     server_tokens off;
     location /t {
         access_by_lua_block {
-          mtls = require("resty.mtls")
+          mtls = require("resty.tls")
           local ssl = require("ngx.ssl")
           local f = assert(io.open("t/fixtures/client_chain.crt"))
           local cert = f:read("*a")
@@ -158,7 +169,7 @@ verify:1, error:0, depth:0, subject:"/CN=test", issuer:"/CN=sub.ca"
     server_tokens off;
     location /t {
         access_by_lua_block {
-          mtls = require("resty.mtls")
+          mtls = require("resty.tls")
           local ssl = require("ngx.ssl")
           local f = assert(io.open("t/fixtures/client_chain.crt"))
           local cert = f:read("*a")
@@ -224,7 +235,7 @@ verify:1, error:0, depth:0, subject:"/CN=test", issuer:"/CN=sub.ca"
     server_tokens off;
     location /t {
         access_by_lua_block {
-          mtls = require("resty.mtls")
+          mtls = require("resty.tls")
           local ssl = require("ngx.ssl")
           local f = assert(io.open("t/fixtures/client_chain.crt"))
           local cert = f:read("*a")
@@ -287,7 +298,7 @@ upstream SSL certificate verify error: (21:unable to verify the first certificat
     server_tokens off;
     location /t {
         access_by_lua_block {
-          mtls = require("resty.mtls")
+          mtls = require("resty.tls")
           local ssl = require("ngx.ssl")
           local f = assert(io.open("t/fixtures/client_chain.crt"))
           local cert = f:read("*a")
@@ -350,7 +361,7 @@ SSL_do_handshake() failed
     server_tokens off;
     location /t {
         access_by_lua_block {
-          mtls = require("resty.mtls")
+          mtls = require("resty.tls")
           local ssl = require("ngx.ssl")
           local f = assert(io.open("t/fixtures/client_chain.crt"))
           local cert = f:read("*a")
@@ -413,7 +424,7 @@ SSL_do_handshake() failed
     server_tokens off;
     location /t {
         access_by_lua_block {
-          mtls = require("resty.mtls")
+          mtls = require("resty.tls")
           local ssl = require("ngx.ssl")
           local f = assert(io.open("t/fixtures/client_chain.crt"))
           local cert = f:read("*a")
@@ -476,7 +487,7 @@ yay, API backend
     server_tokens off;
     location /t {
         access_by_lua_block {
-          mtls = require("resty.mtls")
+          mtls = require("resty.tls")
           local ssl = require("ngx.ssl")
           local f = assert(io.open("t/fixtures/client_chain.crt"))
           local cert = f:read("*a")
@@ -557,7 +568,7 @@ X509_check_host(): match
     server_tokens off;
     location /t {
         access_by_lua_block {
-          mtls = require("resty.mtls")
+          mtls = require("resty.tls")
           local ssl = require("ngx.ssl")
           local f = assert(io.open("t/fixtures/client_chain.crt"))
           local cert = f:read("*a")
@@ -599,3 +610,96 @@ SSL_do_handshake() failed
 --- no_error_log
 [error]
 [alert]
+
+
+
+=== TEST 10: get_full_client_certificate_chain behaves normally
+--- http_config
+    lua_package_path "../lua-resty-core/lib/?.lua;lualib/?.lua;;";
+
+    server {
+        listen unix:$TEST_NGINX_HTML_DIR/nginx.sock ssl;
+        server_name   example.com;
+        ssl_certificate ../../fixtures/example.com.crt;
+        ssl_certificate_key ../../fixtures/example.com.key;
+        ssl_client_certificate ../../fixtures/rootCA.pem;
+        ssl_verify_client on;
+
+        server_tokens off;
+        location /foo {
+            default_type 'text/plain';
+            content_by_lua_block {
+                local chain = require("resty.tls").get_full_client_certificate_chain()
+                if chain then
+                    chain = chain:sub(0, -2)
+                end
+                ngx.say(chain)
+            }
+        }
+    }
+--- config
+    server_tokens off;
+
+    location /t {
+        proxy_ssl_name example.com;
+        proxy_ssl_session_reuse off;
+        proxy_ssl_certificate ../../fixtures/client_chain.crt;
+        proxy_ssl_certificate_key ../../fixtures/client.key;
+        proxy_pass https://unix:$TEST_NGINX_HTML_DIR/nginx.sock:/foo;
+        proxy_ssl_server_name on;
+    }
+--- request
+GET /t
+--- response_body eval
+$::ClientCertChain
+--- no_error_log
+[error]
+[alert]
+[warn]
+[crit]
+
+
+
+=== TEST 11: get_full_client_certificate_chain returns nil when no client certificates
+is provided
+--- http_config
+    lua_package_path "../lua-resty-core/lib/?.lua;lualib/?.lua;;";
+
+    server {
+        listen unix:$TEST_NGINX_HTML_DIR/nginx.sock ssl;
+        server_name   example.com;
+        ssl_certificate ../../fixtures/example.com.crt;
+        ssl_certificate_key ../../fixtures/example.com.key;
+
+        server_tokens off;
+        location /foo {
+            default_type 'text/plain';
+            content_by_lua_block {
+                local chain = require("resty.tls").get_full_client_certificate_chain()
+                if chain then
+                    chain = chain:sub(0, -2)
+                end
+                ngx.say(chain)
+            }
+        }
+    }
+--- config
+    server_tokens off;
+
+    location /t {
+        proxy_ssl_name example.com;
+        proxy_ssl_session_reuse off;
+        proxy_ssl_certificate ../../fixtures/client_chain.crt;
+        proxy_ssl_certificate_key ../../fixtures/client.key;
+        proxy_pass https://unix:$TEST_NGINX_HTML_DIR/nginx.sock:/foo;
+        proxy_ssl_server_name on;
+    }
+--- request
+GET /t
+--- response_body
+nil
+--- no_error_log
+[error]
+[alert]
+[warn]
+[crit]

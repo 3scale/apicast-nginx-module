@@ -29,6 +29,12 @@ Download lua-resty-openssl
 make openssl
 ```
 
+Install lua module
+
+```
+make install
+```
+
 ## Examples:
 
 **test/mtls.conf:**
